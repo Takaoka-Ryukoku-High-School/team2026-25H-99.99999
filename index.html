@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f5ef">
+    <title>今日の段取り | 課題管理</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #202c2a;
+        background: #f6f5ef;
+        font-synthesis: none;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        padding: 28px 16px 40px;
+      }
+
+      button, input { font: inherit; }
+
+      .app { width: min(700px, 100%); margin: 0 auto; }
+
+      .topline, .heading, .toolbar, .task, .footer, .form-row {
+        display: flex;
+        align-items: center;
+      }
+
+      .topline, .toolbar, .footer { justify-content: space-between; }
+      .topline { color: #77807b; font-size: 12px; }
+      .brand { display: flex; align-items: center; gap: 10px; color: #2e6654; font-weight: 700; }
+      .brand-mark {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 50%;
+        color: white;
+        background: #2e6654;
+      }
+
+      h1 { margin: 28px 0 4px; font-size: clamp(30px, 8vw, 38px); font-weight: 600; }
+      .subtitle { margin: 0 0 24px; color: #77807b; font-size: 13px; }
+      .streak {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 5px;
+        margin: 0 0 18px;
+        padding: 8px 12px;
+        border: 1px solid #ead9b5;
+        border-radius: 20px;
+        color: #77551c;
+        background: #fff8e9;
+        font-size: 12px;
+      }
+
+      .streak strong { font-size: 16px; }
+      .streak-total { margin-left: 5px; color: #77807b; }
+      .focus-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 0 0 18px;
+        padding: 16px;
+        border: 1px solid #b9d1c1;
+        border-radius: 8px;
+        background: #e8f1e9;
+      }
+
+      .focus-panel[hidden] { display: none; }
+      .focus-copy { min-width: 0; }
+      .focus-title { margin: 0 0 5px; color: #2e6654; font-size: 12px; font-weight: 700; }
+      .focus-name { overflow-wrap: anywhere; font-size: 17px; font-weight: 600; }
+      .focus-actions { display: flex; flex-shrink: 0; gap: 8px; }
+      .focus-actions button, .start-button {
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid #2e6654;
+        border-radius: 5px;
+        color: #2e6654;
+        background: #fffefa;
+        cursor: pointer;
+      }
+
+      .focus-actions .complete-focus, .start-button:not(:disabled) {
+        color: white;
+        background: #2e6654;
+      }
+
+      .card {
+        overflow: hidden;
+        border: 1px solid #e3e3d9;
+        border-radius: 8px;
+        background: #fffefa;
+        box-shadow: 0 10px 28px #182d2314;
+      }
+
+      .composer { padding: 16px; background: #e2ede5; }
+      .form-row { gap: 10px; }
+      .task-input {
+        min-width: 0;
+        flex: 1;
+        height: 46px;
+        padding: 0 12px;
+        border: 1px solid #d4ded5;
+        border-radius: 5px;
+        background: #fffefa;
+        font-size: 15px;
+      }
+
+      .due-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+      .due-row label { color: #52635b; font-size: 12px; }
+      .due-input { padding: 7px 9px; border: 1px solid #d4ded5; border-radius: 5px; background: white; }
+      .primary, .notify-button {
+        min-height: 42px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 5px;
+        color: white;
+        background: #2e6654;
+        cursor: pointer;
+      }
+
+      .toolbar { min-height: 52px; padding: 8px 16px; border-bottom: 1px solid #dedfd5; }
+      .filters { display: flex; gap: 2px; }
+      .filter {
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 4px;
+        color: #77807b;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .filter.selected { color: #2e6654; background: #e2ede5; }
+      .count, .footer { color: #77807b; font-size: 12px; }
+      .task-list { padding: 0 16px; }
+      .task { min-height: 62px; gap: 10px; border-bottom: 1px solid #dedfd5; }
+      .task:last-child { border-bottom: 0; }
+      .task.is-active { margin: 0 -16px; padding: 0 16px; background: #f0f6f0; }
+      .task-main { display: flex; min-width: 0; flex: 1; align-items: center; gap: 10px; }
+      .task-main input { width: 17px; height: 17px; accent-color: #2e6654; }
+      .task-copy { min-width: 0; }
+      .task-name { overflow-wrap: anywhere; font-size: 14px; }
+      .task.done .task-name { color: #929992; text-decoration: line-through; }
+      .due-label { margin-top: 4px; color: #77807b; font-size: 11px; }
+      .due-label.urgent { color: #cf6048; font-weight: 600; }
+      .delete {
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 4px;
+        color: #77807b;
+        background: transparent;
+        cursor: pointer;
+        font-size: 19px;
+      }
+
+      .start-button { min-height: 32px; padding: 0 10px; font-size: 12px; white-space: nowrap; }
+      .start-button:disabled { border-color: #b9d1c1; color: #2e6654; background: #e2ede5; cursor: default; }
+      .empty { padding: 32px 16px; color: #77807b; text-align: center; font-size: 13px; }
+      .footer { min-height: 48px; padding: 8px 16px; border-top: 1px solid #dedfd5; }
+      .clear-button {
+        padding: 7px 0 7px 8px;
+        border: 0;
+        color: #cf6048;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .reminders { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+      .notify-button { min-height: 36px; padding: 0 12px; font-size: 12px; }
+      .notify-status { color: #77807b; font-size: 12px; }
+      .reminder-time { display: flex; align-items: center; gap: 7px; color: #52635b; font-size: 12px; }
+      .reminder-time input { padding: 6px; border: 1px solid #d4ded5; border-radius: 5px; background: white; }
+      .error { margin: 12px 0 0; color: #b44533; font-size: 13px; }
+
+      @media (max-width: 520px) {
+        body { padding: 18px 12px 32px; }
+        .composer { padding: 12px; }
+        .form-row { flex-wrap: wrap; }
+        .task-input { flex-basis: calc(100% - 100px); }
+        .primary { flex: 1; }
+        .toolbar { padding: 8px; }
+        .task-list { padding: 0 10px; }
+        .footer { padding: 8px; }
+        .reminders { align-items: flex-start; flex-direction: column; gap: 6px; }
+        .focus-panel { align-items: flex-start; flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topline">
+        <div class="brand"><span class="brand-mark">日</span><span>DAILY NOTE</span></div>
+        <time id="today"></time>
+      </header>
+      <h1>今日の段取り</h1>
+      <p class="subtitle">課題の締切を忘れずに、ひとつずつ進めよう。</p>
+      <div class="streak" aria-live="polite">
+        <span aria-hidden="true">🔥</span>
+        <strong id="streak-count">0</strong>
+        <span>日連続利用</span>
+        <span class="streak-total" id="total-days">累計 0 日</span>
+      </div>
+      <section class="focus-panel" id="focus-panel" aria-live="polite" hidden>
+        <div class="focus-copy">
+          <p class="focus-title">今日のメインアクション・取り組み中</p>
+          <div class="focus-name" id="focus-name"></div>
+        </div>
+        <div class="focus-actions">
+          <button class="complete-focus" id="complete-focus" type="button">完了</button>
+          <button id="pause-focus" type="button">中断</button>
+        </div>
+      </section>
+
+      <section class="card" aria-label="課題リスト">
+        <form class="composer" id="task-form">
+          <div class="form-row">
+            <input class="task-input" id="task-input" maxlength="500" placeholder="課題・やることを入力" required>
+            <button class="primary" type="submit">追加 ＋</button>
+          </div>
+          <div class="due-row">
+            <label for="due-input">締切日（任意）</label>
+            <input class="due-input" id="due-input" type="date">
+          </div>
+        </form>
+
+        <div class="toolbar">
+          <div class="filters" aria-label="表示する課題">
+            <button class="filter selected" data-filter="all" type="button">すべて</button>
+            <button class="filter" data-filter="active" type="button">未完了</button>
+            <button class="filter" data-filter="done" type="button">完了</button>
+          </div>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="task-list" id="task-list"></div>
+        <footer class="footer">
+          <span id="progress"></span>
+          <button class="clear-button" id="clear-done" type="button" hidden>完了した項目を削除</button>
+        </footer>
+      </section>
+
+      <div class="reminders">
+        <label class="reminder-time" for="reminder-time">
+          通知時刻
+          <input id="reminder-time" type="time" value="09:00">
+        </label>
+        <button class="notify-button" id="enable-notifications" type="button">ブラウザー通知を有効にする</button>
+        <span class="notify-status" id="notify-status" aria-live="polite"></span>
+      </div>
+      <p class="error" id="error" role="alert" hidden></p>
+    </main>
+
+    <script>
+      const taskList = document.querySelector("#task-list");
+      const taskInput = document.querySelector("#task-input");
+      const dueInput = document.querySelector("#due-input");
+      const reminderTimeInput = document.querySelector("#reminder-time");
+      const errorMessage = document.querySelector("#error");
+      let tasks = [];
+      let currentFilter = "all";
+
+      const savedReminderTime = localStorage.getItem("daily-note-notification-time");
+      reminderTimeInput.value = savedReminderTime && /^\d{2}:\d{2}$/.test(savedReminderTime)
+        ? savedReminderTime
+        : "09:00";
+
+      document.querySelector("#today").textContent = new Intl.DateTimeFormat("ja-JP", {
+        year: "numeric", month: "2-digit", day: "2-digit"
+      }).format(new Date());
+
+      function showError(message = "") {
+        errorMessage.textContent = message;
+        errorMessage.hidden = !message;
+      }
+
+      async function request(path, options = {}) {
+        const response = await fetch(path, {
+          ...options,
+          headers: { "Content-Type": "application/json", ...options.headers }
+        });
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.detail || "処理に失敗しました。もう一度お試しください。");
+        }
+        return response.status === 204 ? null : response.json();
+      }
+
+      function formatDueDate(value) {
+        const [year, month, day] = value.split("-").map(Number);
+        return `${year}年${month}月${day}日`;
+      }
+
+      function render() {
+        const activeTask = tasks.find(task => task.is_active && !task.done);
+        const focusPanel = document.querySelector("#focus-panel");
+        focusPanel.hidden = !activeTask;
+        if (activeTask) {
+          document.querySelector("#focus-name").textContent = activeTask.text;
+          document.querySelector("#complete-focus").onclick = () => updateTask(activeTask.id, { done: true });
+          document.querySelector("#pause-focus").onclick = () => updateTask(activeTask.id, { is_active: false });
+        }
+
+        const visibleTasks = tasks
+          .filter(task => currentFilter === "all" ||
+            (currentFilter === "active" && !task.done) ||
+            (currentFilter === "done" && task.done))
+          .sort((a, b) => {
+            if (!a.due_date) return b.due_date ? 1 : 0;
+            if (!b.due_date) return -1;
+            return a.due_date.localeCompare(b.due_date);
+          });
+        const remaining = tasks.filter(task => !task.done).length;
+        const completed = tasks.length - remaining;
+        document.querySelector("#count").textContent = `未完了 ${remaining} 件`;
+        document.querySelector("#progress").textContent = tasks.length
+          ? `${completed} / ${tasks.length} 件 完了`
+          : "課題はまだありません";
+        document.querySelector("#clear-done").hidden = completed === 0;
+
+        document.querySelectorAll(".filter").forEach(button => {
+          button.classList.toggle("selected", button.dataset.filter === currentFilter);
+        });
+
+        taskList.replaceChildren();
+        if (!visibleTasks.length) {
+          const empty = document.createElement("p");
+          empty.className = "empty";
+          empty.textContent = currentFilter === "active" && tasks.length
+            ? "未完了の課題はありません。いい調子！"
+            : currentFilter === "done" && tasks.length
+              ? "完了した課題はまだありません。"
+              : "まずは、課題をひとつ登録しましょう。";
+          taskList.append(empty);
+          return;
+        }
+
+        for (const task of visibleTasks) {
+          const row = document.createElement("div");
+          row.className = `task${task.done ? " done" : ""}${task.is_active ? " is-active" : ""}`;
+          const main = document.createElement("label");
+          main.className = "task-main";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = task.done;
+          checkbox.addEventListener("change", () => updateTask(task.id, { done: checkbox.checked }));
+
+          const copy = document.createElement("span");
+          copy.className = "task-copy";
+          const name = document.createElement("span");
+          name.className = "task-name";
+          name.textContent = task.text;
+          copy.append(name);
+          if (task.due_date) {
+            const due = document.createElement("span");
+            due.className = "due-label";
+            due.textContent = `締切: ${formatDueDate(task.due_date)}`;
+            if (!task.done && task.due_date <= localDateString()) due.classList.add("urgent");
+            copy.append(due);
+          }
+          main.append(checkbox, copy);
+
+          if (!task.done) {
+            const startButton = document.createElement("button");
+            startButton.className = "start-button";
+            startButton.type = "button";
+            startButton.textContent = task.is_active ? "取り組み中" : "今すぐ始める";
+            startButton.disabled = task.is_active;
+            startButton.addEventListener("click", () => updateTask(task.id, { is_active: true }));
+            row.append(startButton);
+          }
+
+          const deleteButton = document.createElement("button");
+          deleteButton.className = "delete";
+          deleteButton.type = "button";
+          deleteButton.textContent = "×";
+          deleteButton.setAttribute("aria-label", `「${task.text}」を削除`);
+          deleteButton.addEventListener("click", () => deleteTask(task.id));
+          row.append(main, deleteButton);
+          taskList.append(row);
+        }
+      }
+
+      function localDateString() {
+        const now = new Date();
+        const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+        return local.toISOString().slice(0, 10);
+      }
+
+      async function checkIn() {
+        const activity = await request("/api/activity/check-in", {
+          method: "POST",
+          body: JSON.stringify({ activity_date: localDateString() })
+        });
+        document.querySelector("#streak-count").textContent = activity.streak;
+        document.querySelector("#total-days").textContent = `累計 ${activity.total_days} 日`;
+      }
+
+      async function refreshTasks() {
+        tasks = await request("/api/tasks");
+        render();
+        checkDueReminders();
+      }
+
+      async function updateTask(id, changes) {
+        try {
+          await request(`/api/tasks/${encodeURIComponent(id)}`, {
+            method: "PATCH",
+            body: JSON.stringify(changes)
+          });
+          await refreshTasks();
+          showError();
+        } catch (error) {
+          showError(error.message);
+          await refreshTasks().catch(showError);
+        }
+      }
+
+      async function deleteTask(id) {
+        try {
+          await request(`/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE" });
+          await refreshTasks();
+          showError();
+        } catch (error) {
+          showError(error.message);
+        }
+      }
+
+      document.querySelector("#task-form").addEventListener("submit", async event => {
+        event.preventDefault();
+        const text = taskInput.value.trim();
+        if (!text) return;
+        try {
+          await request("/api/tasks", {
+            method: "POST",
+            body: JSON.stringify({ text, due_date: dueInput.value || null })
+          });
+          taskInput.value = "";
+          dueInput.value = "";
+          currentFilter = "all";
+          await refreshTasks();
+          showError();
+          taskInput.focus();
+        } catch (error) {
+          showError(error.message);
+        }
+      });
+
+      document.querySelectorAll(".filter").forEach(button => {
+        button.addEventListener("click", () => {
+          currentFilter = button.dataset.filter;
+          render();
+        });
+      });
+
+      document.querySelector("#clear-done").addEventListener("click", async () => {
+        try {
+          await request("/api/tasks/completed", { method: "DELETE" });
+          await refreshTasks();
+          showError();
+        } catch (error) {
+          showError(error.message);
+        }
+      });
+
+      function updateNotificationStatus() {
+        const status = document.querySelector("#notify-status");
+        const button = document.querySelector("#enable-notifications");
+        if (!("Notification" in window)) {
+          status.textContent = "このブラウザーは通知に対応していません。";
+          button.disabled = true;
+        } else if (Notification.permission === "granted") {
+          status.textContent = "締切日以降、設定時刻に未完了課題を通知します。";
+          button.textContent = "通知は有効です";
+        } else if (Notification.permission === "denied") {
+          status.textContent = "通知が拒否されています。ブラウザーの設定から許可してください。";
+        } else {
+          status.textContent = "締切日以降、設定時刻に通知します。通知の許可が必要です。";
+        }
+      }
+
+      reminderTimeInput.addEventListener("change", () => {
+        if (!/^\d{2}:\d{2}$/.test(reminderTimeInput.value)) {
+          reminderTimeInput.value = "09:00";
+        }
+        localStorage.setItem("daily-note-notification-time", reminderTimeInput.value);
+        checkDueReminders();
+      });
+
+      document.querySelector("#enable-notifications").addEventListener("click", async () => {
+        if (!("Notification" in window)) {
+          updateNotificationStatus();
+          return;
+        }
+        try {
+          await Notification.requestPermission();
+          updateNotificationStatus();
+          checkDueReminders();
+        } catch (error) {
+          showError(`通知の設定に失敗しました: ${error.message}`);
+        }
+      });
+
+      function checkDueReminders() {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        const today = localDateString();
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        if (currentTime < reminderTimeInput.value) return;
+
+        for (const task of tasks) {
+          if (task.done || !task.due_date || task.due_date > today) continue;
+          const reminderKey = `daily-note-reminded:${task.id}:${today}`;
+          if (localStorage.getItem(reminderKey)) continue;
+          const overdue = task.due_date < today;
+          const notification = new Notification(overdue ? "課題に取りかかりましょう（締切超過）" : "課題に取りかかりましょう", {
+            body: `${task.text}（締切: ${formatDueDate(task.due_date)}）`,
+            tag: reminderKey
+          });
+          notification.onclick = () => window.focus();
+          localStorage.setItem(reminderKey, "1");
+        }
+      }
+
+      document.addEventListener("visibilitychange", checkDueReminders);
+      updateNotificationStatus();
+      checkIn().catch(error => showError(error.message));
+      refreshTasks().catch(error => showError(error.message));
+      window.setInterval(checkDueReminders, 30_000);
+    </script>
+  </body>
+</html>
